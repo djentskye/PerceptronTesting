@@ -24,16 +24,13 @@ public class MainMultiLayer {
         p.initializePerceptron();
         p.showState();
         p.fitness(irisInputs, irisOutputs);
-//        System.out.println("FIRST RUN:");
 
         p.showState();
-        runEpoch(p, 20);
+        runEpoch(p, 0.3);
         p.fitness(irisInputs, irisOutputs);
 
-        for(int i = 0; i < 25; i++) {
-            runEpoch(p, 10/(i+1));
-            p.showState();
-            p.fitness(irisInputs, irisOutputs);
+        for(int i = 0; i < 500; i++) {
+            runEpoch(p, 0.3);
         }
         p.showState();
 

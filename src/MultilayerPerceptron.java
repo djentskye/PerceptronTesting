@@ -88,8 +88,8 @@ public class MultilayerPerceptron {
 //            return 0.0;
 //        }
 
-        //Continuous implementation - in this case, the logistic function. Here, k = 2
-        return (1/(1 + Math.exp((-2) * 2 * input)));
+        //Continuous implementation - in this case, the logistic function. Here, k = 10
+        return (1/(1 + Math.exp((-2) * 10 * input)));
     }
 
     /**
@@ -166,7 +166,7 @@ public class MultilayerPerceptron {
      */
     public void backprop(double[] target) {
         double delO = 0.0;
-        double momentum = 0.1;
+        double momentum = 0.2;
 
         //For each output node, modify the weights
         for(int n = 0; n < output; n++) {
@@ -224,7 +224,7 @@ public class MultilayerPerceptron {
             }
         }
 
-        System.out.println("Current error: " + (totalError / testingInputs.length) + "%");
+        System.out.println("Current error: " + (totalError / testingInputs.length));
 
         //Prints fitness of model out of 1, 1 being perfect and 0 being completely incorrect
         System.out.println("Current fitness: " + amountCorrect + "/" + testingInputs.length + " = " + (amountCorrect/testingInputs.length));
