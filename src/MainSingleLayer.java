@@ -1,4 +1,4 @@
-public class Main {
+public class MainSingleLayer {
 
     public static double[][] andGateTwoInputs = {{0, 0}, {0, 1}, {1, 0}, {1, 1}};
     public static double[][] andGateTwoOutputs = {{0}, {0}, {0}, {1}};
@@ -31,11 +31,6 @@ public class Main {
         }
         p.showState();
         p.fitness(irisInputs, irisOutputs);
-
-
-//        for(int i = 0; i < andGateThreeInputs.length; i++) {
-//            System.out.println(p.presentPattern(andGateThreeInputs[i])[0]);
-//        }
     }
 
     public static void runAndGateTwo() {
