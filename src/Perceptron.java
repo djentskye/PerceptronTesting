@@ -1,3 +1,4 @@
+import java.util.Arrays;
 import java.util.Random;
 
 /**
@@ -153,5 +154,19 @@ public class Perceptron {
                 weights[n][m] += outputNodeError * learningRate;
             }
         }
+    }
+
+
+    public void fitness(double[][] testingInputs, double[][] testingOutputs) {
+        double amountCorrect = 0;
+        for(int i = 0; i < testingInputs.length; i++) {
+            this.presentPattern(testingInputs[i]);
+            if(Arrays.equals(this.netout, testingOutputs[i])) {
+                amountCorrect++;
+            }
+        }
+
+        //Prints fitness of model out of 1, 1 being perfect and 0 being completely incorrect
+        System.out.println("Current fitness: " + amountCorrect + "/" + testingInputs.length + " = " + (amountCorrect/testingInputs.length));
     }
 }
