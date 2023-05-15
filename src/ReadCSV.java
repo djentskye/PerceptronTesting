@@ -2,7 +2,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Scanner;
 
-public class ReadFile {
+public class ReadCSV {
 
     /**
      * Reads a CSV of the iris dataset, separated with commas and lines separated with newlines

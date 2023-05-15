@@ -54,6 +54,58 @@ public class MultilayerPerceptron {
         learningRate = 0.5;
     }
 
+
+    public MultilayerPerceptron(int i, int h, int o, double[][][] weights) {
+        this.input = i;
+        this.hidden = h; //This is initially being designed for one layer of hidden nodes
+        this.output = o;
+
+        //Create the weight matrix; in this case, it has size i * o
+//        this.weights = new double[3][];
+//        this.weights[0] = new double[i];
+//        this.weights[1] = new double[h];
+//        this.weights[2] = new double[o];
+        this.weights = weights;
+
+        this.weightDeltas = new double[2][][];
+        this.weightDeltas[0] = new double[h][i];
+        this.weightDeltas[1] = new double[o][h];
+
+        for(int a = 0; a < weights.length; a++) {
+            for (int j = 0; j < weights[a].length; j++) {
+                for(int k = 0; k < weights[a][j].length; k++) {
+                    weightDeltas[a][j][k] = 0.0;
+                }
+            }
+        }
+
+        this.netin = new double[i];
+        this.nethidden = new double[h];
+        this.netout = new double[o];
+
+        learningRate = 0.5;
+    }
+
+    public int getInput() {
+        return input;
+    }
+
+    public int getHidden() {
+        return hidden;
+    }
+
+    public int getOutput() {
+        return output;
+    }
+
+    public double[][][] getWeights() {
+        return weights;
+    }
+
+    public double[][][] getWeightDeltas() {
+        return weightDeltas;
+    }
+
     public void changeLearningRate(double rate) {
         this.learningRate = rate;
     }

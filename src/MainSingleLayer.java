@@ -10,7 +10,7 @@ public class MainSingleLayer {
     public static double[][] irisOutputs = new double[150][3];
 
     public static void main(String[] args) {
-        ReadFile.readIrisDataset("iris.data", irisInputs, irisOutputs);
+        ReadCSV.readIrisDataset("iris.data", irisInputs, irisOutputs);
 
         Perceptron p = new Perceptron(4, 0, 3);
         p.initializePerceptron();
