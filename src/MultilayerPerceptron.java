@@ -9,15 +9,19 @@ public class MultilayerPerceptron {
 
     //TODO: Add bias nodes
 
-    //The number of input, hidden, output nodes
-    private int input, hidden, output;
+    //The number of input nodes, output nodes, and hidden layers
+    private int input, hiddenLayers, output;
+
+    //The numbers of nodes in each hidden layer. The size of this array should be hidden_layers
+    private int[] hiddenNodes;
 
     //Weight matrix (num of layers - 1, regular weight matrices)
     private double[][][] weights;
     private double[][][] weightDeltas;
 
     //Input and output vectors
-    private double[] netin, nethidden, netout;
+    private double[] netin, netout;
+    private double[][] nethidden;
 
     //Learning rate
     private double learningRate;
@@ -26,39 +30,61 @@ public class MultilayerPerceptron {
      * Creates perceptron
      *
      * @param i num of input nodes
-     * @param h num of hidden nodes
+     * @param h num of hidden layers, minimum 1
      * @param o num of output nodes
+     * @param h_nodes num of hidden nodes in each layer, length of array should be h
      */
-    public MultilayerPerceptron(int i, int h, int o) {
+    public MultilayerPerceptron(int i, int h, int o, int[] h_nodes) {
         this.input = i;
-        this.hidden = h; //This is initially being designed for one layer of hidden nodes
+        this.hiddenLayers = h; //This is assumed to be at least 1, otherwise just use the non-multilayer perceptron
         this.output = o;
 
-        //Create the weight matrix; in this case, it has size i * o
-//        this.weights = new double[3][];
-//        this.weights[0] = new double[i];
-//        this.weights[1] = new double[h];
-//        this.weights[2] = new double[o];
-        this.weights = new double[2][][]; //We initialize the first array size to 2, as there are 2 array matrices
-        this.weights[0] = new double[h][i]; //???
-        this.weights[1] = new double[o][h]; //We specifically use o * h because that simplifies weighted sum processing?
+        this.hiddenNodes = h_nodes;
 
-        this.weightDeltas = new double[2][][];
-        this.weightDeltas[0] = new double[h][i];
-        this.weightDeltas[1] = new double[o][h];
+        //Create the weight matrix; in this case, it has size i * o
+        this.weights = new double[h + 1][][]; //We initialize the first array size to h + 1, the number of weights we
+                                              //should end up with.
+
+        //Create the first layer of weights between the input layer and the first layer of hidden nodes
+        this.weights[0] = new double[h_nodes[0]][i];
+
+        //Create all the layers of weights between the hidden nodes
+        for(int j = 1; j < h; j++) {
+            this.weights[j] = new double[h_nodes[j]][h_nodes[j-1]];
+        }
+
+        //Create the layer of weights between the last hidden layer and the output layer
+        this.weights[h] = new double[o][h_nodes[h-1]]; //We specifically use o * h because that simplifies weighted sum processing
+
+        //Create weightDeltas, maybe split this up later for readability?
+        this.weightDeltas = new double[h + 1][][];
+
+        this.weightDeltas[0] = new double[h_nodes[0]][i];
+
+        for(int j = 1; j < h; j++) {
+            this.weightDeltas[j] = new double[h_nodes[j]][h_nodes[j-1]];
+        }
+
+        this.weightDeltas[h] = new double[o][h_nodes[h-1]];
 
         this.netin = new double[i];
-        this.nethidden = new double[h];
+        this.nethidden = new double[h][]; //nethidden contains the hidden nodes, first dimension is the layer, second
+                                          //dimension is the node within said layer
+        for(int j = 0; j < h; j++) {
+            this.nethidden[j] = new double[h_nodes[j]];
+        }
         this.netout = new double[o];
 
         learningRate = 0.5;
     }
 
 
-    public MultilayerPerceptron(int i, int h, int o, double[][][] weights) {
+    public MultilayerPerceptron(int i, int h, int o, int[] h_nodes, double[][][] weights) {
         this.input = i;
-        this.hidden = h; //This is initially being designed for one layer of hidden nodes
+        this.hiddenLayers = h; //This is assumed to be at least 1, otherwise just use the non-multilayer perceptron
         this.output = o;
+
+        this.hiddenNodes = h_nodes;
 
         //Create the weight matrix; in this case, it has size i * o
 //        this.weights = new double[3][];
@@ -67,20 +93,23 @@ public class MultilayerPerceptron {
 //        this.weights[2] = new double[o];
         this.weights = weights;
 
-        this.weightDeltas = new double[2][][];
-        this.weightDeltas[0] = new double[h][i];
-        this.weightDeltas[1] = new double[o][h];
+        //Create weightDeltas, maybe split this up later for readability?
+        this.weightDeltas = new double[h + 1][][];
 
-        for(int a = 0; a < weights.length; a++) {
-            for (int j = 0; j < weights[a].length; j++) {
-                for(int k = 0; k < weights[a][j].length; k++) {
-                    weightDeltas[a][j][k] = 0.0;
-                }
-            }
+        this.weightDeltas[0] = new double[h_nodes[0]][i];
+
+        for(int j = 1; j < h; j++) {
+            this.weightDeltas[j] = new double[h_nodes[j]][h_nodes[j-1]];
         }
 
+        this.weightDeltas[h] = new double[o][h_nodes[h-1]];
+
         this.netin = new double[i];
-        this.nethidden = new double[h];
+        this.nethidden = new double[h][]; //nethidden contains the hidden nodes, first dimension is the layer, second
+        //dimension is the node within said layer
+        for(int j = 0; j < h; j++) {
+            this.nethidden[j] = new double[h_nodes[j]];
+        }
         this.netout = new double[o];
 
         learningRate = 0.5;
@@ -90,8 +119,12 @@ public class MultilayerPerceptron {
         return input;
     }
 
-    public int getHidden() {
-        return hidden;
+    public int getHiddenLayers() {
+        return hiddenLayers;
+    }
+
+    public int[] getHiddenNodes() {
+        return hiddenNodes;
     }
 
     public int getOutput() {
@@ -153,14 +186,24 @@ public class MultilayerPerceptron {
     public double[] presentPattern(double[] pattern) {
         netin = pattern;
 
-        //Iterate through each hidden node and calculate the weighted sum for each
-        for(int i = 0; i < this.hidden; i++) {
-            nethidden[i] = threshold(weightedSum(netin, weights[0][i]));
+        //Iterate through each hidden layer and calculate the weighted sum for each
+        for(int j = 0; j < hiddenLayers; j++) {
+            if(j == 0) {
+                //Iterate through each hidden node in the first layer and calculate the weighted sum for each
+                for (int i = 0; i < hiddenNodes[j]; i++) {
+                    nethidden[j][i] = threshold(weightedSum(netin, weights[0][i]));
+                }
+            } else {
+                //Iterate through each hidden node in the current layer and calculate the weighted sum for each
+                for (int i = 0; i < hiddenNodes[j]; i++) {
+                    nethidden[j][i] = threshold(weightedSum(nethidden[j-1], weights[0][i]));
+                }
+            }
         }
 
         //Iterate through each output node and calculate the weighted sum for each
-        for(int i = 0; i < this.output; i++) {
-            netout[i] = threshold(weightedSum(nethidden, weights[1][i]));
+        for(int i = 0; i < output; i++) {
+            netout[i] = threshold(weightedSum(nethidden[hiddenLayers-1], weights[1][i]));
         }
 
         return netout;
@@ -217,36 +260,62 @@ public class MultilayerPerceptron {
      * @param target
      */
     public void backprop(double[] target) {
+        //TODO: This function is scary. Make it less scary pls
+        //Also it is making the perceptron WORSE not better... uhhh
         double delO = 0.0;
-        double momentum = 0.2;
+        double momentum = 0.2; //TODO: Move the momentum variable out of this function
 
         //For each output node, modify the weights
         for(int n = 0; n < output; n++) {
             //Correct the output weights
-            for(int m = 0; m < weights[1][n].length; m++) {
+            for(int m = 0; m < weights[hiddenLayers][n].length; m++) {
                 //Referencing pg. 11 from Leonardo Noriega, with the addition of momentum in the form of weightDeltas
-                weights[1][n][m] = weights[1][n][m] + (learningRate * (netout[n] * (1 - netout[n]) *
-                        (target[n] - netout[n])) * nethidden[m]) + (weightDeltas[1][n][m] * momentum);
+                weights[hiddenLayers][n][m] = weights[hiddenLayers][n][m] + (learningRate * (netout[n] * (1 - netout[n]) *
+                        (target[n] - netout[n])) * nethidden[hiddenLayers-1][m]) /*This uses the last hidden layer*/ +
+                        (weightDeltas[hiddenLayers][n][m] * momentum); /*hiddenLayers is used to find the last array*/
 
                 //Momentum, stored in weightDeltas
-                weightDeltas[1][n][m] = (learningRate * (netout[n] * (1 - netout[n]) *
-                        (target[n] - netout[n])) * nethidden[m]) + (weightDeltas[1][n][m] * momentum);
+                weightDeltas[hiddenLayers][n][m] = (learningRate * (netout[n] * (1 - netout[n]) *
+                        (target[n] - netout[n])) * nethidden[hiddenLayers-1][m]) + (weightDeltas[hiddenLayers][n][m] *
+                        momentum);
 
                 //BACK propagation...
-                delO += (weights[1][n][m] * (netout[n] * (1 - netout[n]) * (target[n] - netout[n])));
+                delO += (weights[hiddenLayers][n][m] * (netout[n] * (1 - netout[n]) * (target[n] - netout[n])));
             }
         }
 
-            //Calculate the node's signal error
-            //Update the weights for each node
-        for(int n = 0; n < hidden; n++) {
+            //Update weights for middle hidden nodes
+        for(int a = hiddenLayers-1; a < 0; a++) { //Work backwards
+            double delO_last = delO; //Lets us preserve our old delO while changing the new one
+            delO = 0.0;
+            for (int n = 0; n < hiddenNodes[a]; n++) {
+                //Correct the output weights
+                for (int m = 0; m < weights[a][n].length; m++) {
+                    //Referencing pg. 11 from Leonardo Noriega
+                    weights[a][n][m] = weights[a][n][m] + (learningRate * (nethidden[a][n] * (1 - nethidden[a][n]) *
+                            delO_last) * nethidden[a-1][m]) + (weightDeltas[a][n][m] * momentum); //This is kind of scuffed...
+
+                    //Momentum...
+                    weightDeltas[a][n][m] = (learningRate * (nethidden[a][n] * (1 - nethidden[a][n]) *
+                            delO_last) * nethidden[a-1][m]) + (weightDeltas[a][n][m] * momentum);
+
+                    //BACK propagation...
+                    delO += (weights[a][n][m] * (nethidden[a][n] * (1 - nethidden[a][n]) * delO_last));
+                    //wtf do we do with (target[n] - netout[n])???????? i guess just replace with delO_last????
+                }
+            }
+        }
+
+        //Update weights for the first layer of hidden nodes connected to inputs
+        for (int n = 0; n < hiddenNodes[0]; n++) {
             //Correct the output weights
-            for(int m = 0; m < weights[0][n].length; m++) {
+            for (int m = 0; m < weights[0][n].length; m++) {
                 //Referencing pg. 11 from Leonardo Noriega
-                weights[0][n][m] = weights[0][n][m] + (learningRate * (nethidden[n] * (1 - nethidden[n]) *
+                weights[0][n][m] = weights[0][n][m] + (learningRate * (nethidden[0][n] * (1 - nethidden[0][n]) *
                         delO) * netin[m]) + (weightDeltas[0][n][m] * momentum); //This is kind of scuffed...
 
-                weightDeltas[0][n][m] = (learningRate * (nethidden[n] * (1 - nethidden[n]) *
+                //Momentum...
+                weightDeltas[0][n][m] = (learningRate * (nethidden[0][n] * (1 - nethidden[0][n]) *
                         delO) * netin[m]) + (weightDeltas[0][n][m] * momentum);
             }
         }

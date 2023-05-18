@@ -32,17 +32,17 @@ public class MainMultiLayer {
 
         p.fitness(irisInputs, irisOutputs);
 
-        FileIO.saveMultilayerPerceptron(p, "testing_perceptron.txt");
+        FileIO.saveMultilayerPerceptron(p, "testing_perceptron_updated.txt");
     }
 
     public static void main(String[] args) {
         ReadCSV.readIrisDataset("iris.data", irisInputs, irisOutputs);
 
-//        MultilayerPerceptron p = new MultilayerPerceptron(4, 4, 3);
+//        MultilayerPerceptron p = new MultilayerPerceptron(4, 2, 3, new int[]{4, 3});
 //        p.initializePerceptron();
 //        runIrisDataset(p);
 
-        MultilayerPerceptron p = FileIO.loadMultilayerPerceptron("testing_perceptron.txt");
+        MultilayerPerceptron p = FileIO.loadMultilayerPerceptron("testing_perceptron_updated.txt");
         runIrisDataset(p);
     }
 }
