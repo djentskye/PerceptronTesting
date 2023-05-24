@@ -38,11 +38,13 @@ public class MainMultiLayer {
     public static void main(String[] args) {
         ReadCSV.readIrisDataset("iris.data", irisInputs, irisOutputs);
 
-//        MultilayerPerceptron p = new MultilayerPerceptron(4, 2, 3, new int[]{4, 3});
-//        p.initializePerceptron();
-//        runIrisDataset(p);
-
-        MultilayerPerceptron p = FileIO.loadMultilayerPerceptron("testing_perceptron_updated.txt");
+        MultilayerPerceptron p = new MultilayerPerceptron(4, 2, 3, new int[]{4, 3}); //TODO: Breaks with {3, 4}
+        p.initializePerceptron();
         runIrisDataset(p);
+
+        GraphicsWindow graphicsWindow = new GraphicsWindow("Multilayer Perceptron Output", 800, 1200, p);
+
+//        MultilayerPerceptron p = FileIO.loadMultilayerPerceptron("testing_perceptron_updated.txt");
+//        runIrisDataset(p);
     }
 }

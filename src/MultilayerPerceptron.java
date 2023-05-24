@@ -254,8 +254,7 @@ public class MultilayerPerceptron {
     }
 
     /**
-     * Calculates perceptron error and propagates the error backwards. Momentum is not currently implemented, so local
-     * minimums could be a problem.
+     * Calculates perceptron error and propagates the error backwards. Local minimums could be a problem.
      *
      * @param target
      */
