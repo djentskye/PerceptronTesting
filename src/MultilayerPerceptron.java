@@ -284,7 +284,7 @@ public class MultilayerPerceptron {
         }
 
             //Update weights for middle hidden nodes
-        for(int a = hiddenLayers-1; a < 0; a++) { //Work backwards
+        for(int a = hiddenLayers-1; a > 0; a--) { //Work backwards
             double delO_last = delO; //Lets us preserve our old delO while changing the new one
             delO = 0.0;
             for (int n = 0; n < hiddenNodes[a]; n++) {
