@@ -31,6 +31,7 @@ public class MainMultiLayer {
         p.showState();
 
         p.fitness(irisInputs, irisOutputs);
+        p.printErrorMatrix(irisInputs, irisOutputs);
 
         FileIO.saveMultilayerPerceptron(p, "testing_perceptron_updated.txt");
     }
@@ -42,7 +43,7 @@ public class MainMultiLayer {
         p.initializePerceptron();
         runIrisDataset(p);
 
-        GraphicsWindow graphicsWindow = new GraphicsWindow("Multilayer Perceptron Output", 800, 1200, p);
+//        GraphicsWindow graphicsWindow = new GraphicsWindow("Multilayer Perceptron Output", 800, 1200, p);
 
 //        MultilayerPerceptron p = FileIO.loadMultilayerPerceptron("testing_perceptron_updated.txt");
 //        runIrisDataset(p);

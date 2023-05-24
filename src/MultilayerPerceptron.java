@@ -337,6 +337,7 @@ public class MultilayerPerceptron {
 
             totalError += error(testingOutputs[i]);
 
+            //TODO: Make the length non-hardcoded
             double[] roundedNetout = {Math.round(this.netout[0]), Math.round(this.netout[1]), Math.round(this.netout[2])};
 
             if(Arrays.equals(roundedNetout, testingOutputs[i])) {
@@ -348,5 +349,57 @@ public class MultilayerPerceptron {
 
         //Prints fitness of model out of 1, 1 being perfect and 0 being completely incorrect
         System.out.println("Current fitness: " + amountCorrect + "/" + testingInputs.length + " = " + (amountCorrect/testingInputs.length));
+    }
+
+    public int[][] getErrorMatrix(double[][] testingInputs, double[][] testingOutputs) {
+        int[][] errMatrix = new int[output][output]; //Reference, classified
+
+        for(int i = 0; i < testingInputs.length; i++) {
+            this.presentPattern(testingInputs[i]);
+
+            //Detect what class the mlp thought the input belonged to
+            int highestValue = 0;
+            for(int j = 1; j < netout.length; j++) {
+                if(Math.max(netout[highestValue], netout[j]) == netout[j]) {
+                    highestValue = j;
+                }
+            }
+
+            //TODO: fix, this is pretty inefficient, but I can't bother to find a better way to do it
+            int actualClass = 0;
+            for(int j = 1; j < testingOutputs[i].length; j++) {
+                if(Math.max(testingOutputs[i][actualClass], testingOutputs[i][j]) == testingOutputs[i][j]) {
+                    actualClass = j;
+                }
+            }
+
+            //Add one to the correct spot for this input
+            errMatrix[actualClass][highestValue] += 1;
+        }
+
+        return errMatrix;
+    }
+
+    public void printErrorMatrix(double[][] testingInputs, double[][] testingOutputs) {
+        int[][] errMatrix = getErrorMatrix(testingInputs, testingOutputs);
+
+        //This gets really cursed for large numbers of outputs, but it'll be fine for now
+        System.out.print("ErrMatrix   ");
+        for(int i = 0; i < output; i++) {
+            System.out.print((i+1) + "   ");
+        }
+        System.out.println("<- Reference data");
+
+        for(int i = 0; i < output; i++) {
+            System.out.print((i+1) + "           ");
+            for(int j = 0; j < output; j++) {
+                System.out.print(errMatrix[j][i] + "   ");
+            }
+
+            System.out.println();
+        }
+
+        System.out.println("^ Classified");
+        System.out.println("| Data");
     }
 }
