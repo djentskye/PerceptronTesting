@@ -16,12 +16,27 @@ public class MultilayerPerceptron {
     private int[] hiddenNodes;
 
     //Weight matrix (num of layers - 1, regular weight matrices)
+    //Format is: Origin node layer
+    //           Destination node index
+    //           Origin node index
     private double[][][] weights;
+
+    //Momentum deltas for each weight.
     private double[][][] weightDeltas;
 
     //Input and output vectors
     private double[] netin, netout;
     private double[][] nethidden;
+
+    //Input and output pre-activation
+    //This is becoming a memory nightmare hahaha
+    private double[] netin_unactiv, netout_unactiv;
+    private double[][] nethidden_unactiv;
+
+    //Inner and output vector deltas
+//    private double[] netout_deltas;
+//    private double[][] nethidden_deltas;
+    private double[][] deltas;
 
     //Learning rate
     private double learningRate;
@@ -75,10 +90,41 @@ public class MultilayerPerceptron {
         }
         this.netout = new double[o];
 
-        learningRate = 0.5;
+        //Initialize unactivated variables
+        this.nethidden_unactiv = new double[h][]; //nethidden contains the hidden nodes, first dimension is the layer, second
+        //dimension is the node within said layer
+        for(int j = 0; j < h; j++) {
+            this.nethidden_unactiv[j] = new double[h_nodes[j]];
+        }
+        this.netout_unactiv = new double[o];
+
+//        //Initialize deltas
+//        this.nethidden_deltas = new double[h][]; //nethidden contains the hidden nodes, first dimension is the layer, second
+//        //dimension is the node within said layer
+//        for(int j = 0; j < h; j++) {
+//            this.nethidden_deltas[j] = new double[h_nodes[j]];
+//        }
+//        this.netout_deltas = new double[o];
+
+        this.deltas = new double[h + 1][]; //We initialize the first array size to h + 1, the number of delta columns we
+        //should end up with.
+
+        //Create all the layers of deltas for the hidden nodes
+        for(int j = 0; j < h; j++) {
+            this.deltas[j] = new double[h_nodes[j]];
+        }
+
+        //Create the layer of deltas for the output layer
+        this.deltas[h] = new double[o]; //We specifically use o * h because that simplifies weighted sum processing
+
+
+
+//        learningRate = 0.5;
+        learningRate = 1;
     }
 
 
+    //NOTE: not used at the moment. needs to be updated.
     public MultilayerPerceptron(int i, int h, int o, int[] h_nodes, double[][][] weights) {
         this.input = i;
         this.hiddenLayers = h; //This is assumed to be at least 1, otherwise just use the non-multilayer perceptron
@@ -112,7 +158,8 @@ public class MultilayerPerceptron {
         }
         this.netout = new double[o];
 
-        learningRate = 0.5;
+//        learningRate = 0.5;
+        learningRate = 2;
     }
 
     public int getInput() {
@@ -202,19 +249,26 @@ public class MultilayerPerceptron {
             if(j == 0) {
                 //Iterate through each hidden node in the first layer and calculate the weighted sum for each
                 for (int i = 0; i < hiddenNodes[j]; i++) {
+                    nethidden_unactiv[j][i] = weightedSum(netin, weights[0][i]);
                     nethidden[j][i] = threshold(weightedSum(netin, weights[0][i]));
                 }
             } else {
                 //Iterate through each hidden node in the current layer and calculate the weighted sum for each
                 for (int i = 0; i < hiddenNodes[j]; i++) {
-                    nethidden[j][i] = threshold(weightedSum(nethidden[j-1], weights[0][i]));
+//                    nethidden_unactiv[j][i] = weightedSum(nethidden[j-1], weights[0][i]);
+                    nethidden_unactiv[j][i] = weightedSum(nethidden[j-1], weights[j][i]);
+                    //weights is the wrong size here!!!!
+                    nethidden[j][i] = threshold(weightedSum(nethidden[j-1], weights[j][i]));
                 }
             }
         }
 
         //Iterate through each output node and calculate the weighted sum for each
         for(int i = 0; i < output; i++) {
-            netout[i] = threshold(weightedSum(nethidden[hiddenLayers-1], weights[1][i]));
+//            netout_unactiv[i] = weightedSum(nethidden[hiddenLayers-1], weights[1][i]);
+//            netout[i] = threshold(weightedSum(nethidden[hiddenLayers-1], weights[1][i]));
+            netout_unactiv[i] = weightedSum(nethidden[hiddenLayers-1], weights[hiddenLayers][i]);
+            netout[i] = threshold(weightedSum(nethidden[hiddenLayers-1], weights[hiddenLayers][i]));
         }
 
         return netout;
@@ -269,67 +323,159 @@ public class MultilayerPerceptron {
      *
      * @param target
      */
-    public void backprop(double[] target) {
-        //TODO: This function is scary. Make it less scary pls
-        //Also it is making the perceptron WORSE not better... uhhh
-        double delta = 0.0; //?????
-        double momentum = 0.2; //TODO: Move the momentum variable out of this function
+    public double[][][] backprop(double[] target) {
+        double momentum = 0.1; //TODO: Move the momentum variable out of this function
 
-        //For each output node, modify the weights
-        for(int n = 0; n < output; n++) {
-            //Correct the output weights
-            for(int m = 0; m < weights[hiddenLayers][n].length; m++) {
+        //For each output node, find the delta
+        for (int n = 0; n < output; n++) {
+
+            //Find the delta of the current output node
+            deltas[hiddenLayers][n] = 2 * (target[n] - netout[n]) /*?? or target[n]-netout[n]*/ * thresholdDeriv(netout_unactiv[n]);
+
+
+            //Correct the weights leading to the output layer
+            //Iterate through the last
+            for (int m = 0; m < weights[hiddenLayers][n].length; m++) {
                 //Referencing pg. 11 from Leonardo Noriega, with the addition of momentum in the form of weightDeltas
-                weights[hiddenLayers][n][m] = weights[hiddenLayers][n][m] + (learningRate * (netout[n] * (1 - netout[n]) *
-                        (target[n] - netout[n])) * nethidden[hiddenLayers-1][m]) /*This uses the last hidden layer*/ +
-                        (weightDeltas[hiddenLayers][n][m] * momentum); /*hiddenLayers is used to find the last array*/
 
                 //Momentum, stored in weightDeltas
-                weightDeltas[hiddenLayers][n][m] = (learningRate * (netout[n] * (1 - netout[n]) *
-                        (target[n] - netout[n])) * nethidden[hiddenLayers-1][m]) + (weightDeltas[hiddenLayers][n][m] *
-                        momentum);
+                weightDeltas[hiddenLayers][n][m] = (momentum * weightDeltas[hiddenLayers][n][m]) + deltas[hiddenLayers][n] * nethidden[hiddenLayers - 1][m] * learningRate;
 
-                //BACK propagation...
-                delta += (weights[hiddenLayers][n][m] * (netout[n] * (1 - netout[n]) * (target[n] - netout[n])));
+
+//                weights[hiddenLayers][n][m] = weights[hiddenLayers][n][m] - (weightDeltas[hiddenLayers][n][m]);
             }
         }
 
-            //Update weights for middle hidden nodes
-        for(int a = hiddenLayers-1; a > 0; a--) { //Work backwards
-            double delta_last = delta; //Lets us preserve our old delO while changing the new one
-            delta = 0.0;
-            for (int n = 0; n < hiddenNodes[a]; n++) {
+        //Update weights for middle hidden nodes
+        //Select the next hidden layer to work on
+        for (int a = hiddenLayers - 1; a > 0; a--) { //Work backwards
+
+            for (int n = 0; n < nethidden[a].length; n++) {
+
+                //Find the sum of the deltas from the layer after the one we want to parse
+                double deltasum = 0;
+
+                //Iterate through each to find the sum of deltas which we use for this node.
+                for (int i = 0; i < deltas[a + 1].length; i++) {
+                    deltasum = deltasum + weights[a + 1][i][n] * deltas[a + 1][i];
+                }
+
+                //Find the delta of the current hidden node
+                deltas[a][n] = 2 * deltasum * thresholdDeriv(nethidden_unactiv[a][n]);
+
                 //Correct the output weights
                 for (int m = 0; m < weights[a][n].length; m++) {
-                    //Referencing pg. 11 from Leonardo Noriega
-                    weights[a][n][m] = weights[a][n][m] + (learningRate * (nethidden[a][n] * (1 - nethidden[a][n]) *
-                            delta_last) * nethidden[a-1][m]) + (weightDeltas[a][n][m] * momentum); //This is kind of scuffed...
 
-                    //Momentum...
-                    weightDeltas[a][n][m] = (learningRate * (nethidden[a][n] * (1 - nethidden[a][n]) *
-                            delta_last) * nethidden[a-1][m]) + (weightDeltas[a][n][m] * momentum);
+                    //Momentum, stored in weightDeltas
+                    weightDeltas[a][n][m] = (momentum * weightDeltas[a][n][m]) + deltas[a][n] * nethidden[a - 1][m] * learningRate;
 
-                    //BACK propagation...
-                    delta += (weights[a][n][m] * (nethidden[a][n] * (1 - nethidden[a][n]) * delta_last));
-                    //wtf do we do with (target[n] - netout[n])???????? i guess just replace with delO_last????
+//                    weights[a][n][m] = weights[a][n][m] - (weightDeltas[a][n][m]);
                 }
             }
         }
 
-        //Update weights for the first layer of hidden nodes connected to inputs
-        for (int n = 0; n < hiddenNodes[0]; n++) {
+        for (int n = 0; n < nethidden[0].length; n++) {
+
+            //Find the delta of the current output node
+            double deltasum = 0;
+
+            //Iterate through each to find the sum of deltas which we use for this node.
+            for (int i = 0; i < deltas[1].length; i++) {
+                deltasum = deltasum + weights[1][i][n] * deltas[1][i];
+            }
+
+            deltas[0][n] = 2 * deltasum * thresholdDeriv(nethidden_unactiv[0][n]);
+
             //Correct the output weights
             for (int m = 0; m < weights[0][n].length; m++) {
-                //Referencing pg. 11 from Leonardo Noriega
-                weights[0][n][m] = weights[0][n][m] + (learningRate * (nethidden[0][n] * (1 - nethidden[0][n]) *
-                        delta) * netin[m]) + (weightDeltas[0][n][m] * momentum); //This is kind of scuffed...
 
-                //Momentum...
-                weightDeltas[0][n][m] = (learningRate * (nethidden[0][n] * (1 - nethidden[0][n]) *
-                        delta) * netin[m]) + (weightDeltas[0][n][m] * momentum);
+                //Momentum, stored in weightDeltas
+                //?????
+                weightDeltas[0][n][m] = (momentum * weightDeltas[0][n][m]) + deltas[0][n] * netin[m] * learningRate;
+
+//                    weights[a][n][m] = weights[a][n][m] - (weightDeltas[a][n][m]);
+            }
+        }
+
+        return weightDeltas;
+    }
+
+    public void backprop_weights(double[][][] gradientVector) {
+        for(int k = 0; k < gradientVector.length; k++) {
+            for(int l = 0; l < gradientVector[k].length; l++) {
+                for(int m = 0; m < gradientVector[k][l].length; m++) {
+                    weights[k][l][m] = weights[k][l][m] - gradientVector[k][l][m];
+                }
             }
         }
     }
+
+
+//        public void backprop(double[] target) {
+//            double momentum = 0.3; //TODO: Move the momentum variable out of this function
+//
+//            //For each output node, find the delta
+//            for(int n = 0; n < output; n++) {
+//
+//                //Find the delta of the current output node
+//                deltas[hiddenLayers][n] = 2 * (target[n]-netout[n]) /*?? or target[n]-netout[n]*/ * thresholdDeriv(netout_unactiv[n]);
+//
+//
+//                //Correct the weights leading to the output layer
+//                //Iterate through the last
+//                for(int m = 0; m < weights[hiddenLayers][n].length; m++) {
+//                    //Referencing pg. 11 from Leonardo Noriega, with the addition of momentum in the form of weightDeltas
+//
+//                    //Momentum, stored in weightDeltas
+//                    weightDeltas[hiddenLayers][n][m] = (momentum * weightDeltas[hiddenLayers][n][m]) + deltas[hiddenLayers][n] * nethidden[hiddenLayers-1][m] * learningRate;
+//
+//
+//                    weights[hiddenLayers][n][m] = weights[hiddenLayers][n][m] - (weightDeltas[hiddenLayers][n][m]);
+//                }
+//            }
+//
+//            //Update weights for middle hidden nodes
+//            //Select the next hidden layer to work on
+//            for(int a = hiddenLayers-1; a > 0; a--) { //Work backwards
+//
+//                for (int n = 0; n < nethidden[a].length; n++) {
+//
+//                    //Find the sum of the deltas from the layer after the one we want to parse
+//                    double deltasum = 0;
+//
+//                    //Iterate through each to find the sum of deltas which we use for this node.
+//                    for(int i = 0; i < deltas[a+1].length; i++) {
+//                        deltasum = deltasum + weights[a+1][i][n] * deltas[a+1][i];
+//                    }
+//
+//                    //Find the delta of the current hidden node
+//                    deltas[a][n] = 2 * deltasum * thresholdDeriv(nethidden_unactiv[a][n]);
+//
+//                    //Correct the output weights
+//                    for (int m = 0; m < weights[a][n].length; m++) {
+//
+//                        //Momentum, stored in weightDeltas
+//                        weightDeltas[a][n][m] = (momentum * weightDeltas[a][n][m]) + deltas[a][n] * nethidden[a-1][m] * learningRate;
+//
+//                        weights[a][n][m] = weights[a][n][m] - (weightDeltas[a][n][m]);
+//                    }
+//                }
+//            }
+//
+////        //Update weights for the first layer of hidden nodes connected to inputs
+////        for (int n = 0; n < hiddenNodes[0]; n++) {
+////            //Correct the output weights
+////            for (int m = 0; m < weights[0][n].length; m++) {
+////                //Referencing pg. 11 from Leonardo Noriega
+////                weights[0][n][m] = weights[0][n][m] + (learningRate * (nethidden[0][n] * (1 - nethidden[0][n]) *
+////                        delta) * netin[m]) + (weightDeltas[0][n][m] * momentum); //This is kind of scuffed...
+////
+////                //Momentum...
+////                weightDeltas[0][n][m] = (learningRate * (nethidden[0][n] * (1 - nethidden[0][n]) *
+////                        delta) * netin[m]) + (weightDeltas[0][n][m] * momentum);
+////            }
+////        }
+//    }
 
     public double error(double[] target) {
         double summation = 0.0;
