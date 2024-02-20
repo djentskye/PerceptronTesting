@@ -8,8 +8,7 @@ public class MainMultiLayer {
     public static double[][] irisAmyInputs = new double[3][4];
     public static double[][] irisAmyOutputs = new double[3][3];
 
-    public static void runEpoch(MultilayerPerceptron p, double learningRate) {
-        int epochSize = 10;
+    public static void runEpoch(MultilayerPerceptron p, double learningRate, int epochSize) {
 
         p.changeLearningRate(learningRate);
 
@@ -58,12 +57,12 @@ public class MainMultiLayer {
         p.printErrorMatrix(irisInputs, irisOutputs);
 
         p.showState();
-        runEpoch(p, 0.5);
+        runEpoch(p, 0.5, 10);
         p.fitness(irisInputs, irisOutputs);
         p.printErrorMatrix(irisInputs, irisOutputs);
 
         for(int i = 0; i < 500; i++) {
-            runEpoch(p, 0.5);
+            runEpoch(p, 0.5, 10);
         }
         p.showState();
 
@@ -77,7 +76,7 @@ public class MainMultiLayer {
         ReadCSV.readIrisDataset("iris.data", irisInputs, irisOutputs);
 
 //        MultilayerPerceptron p = new MultilayerPerceptron(4, 2, 3, new int[]{4, 3});
-        MultilayerPerceptron p = new MultilayerPerceptron(4, 2, 3, new int[]{4, 3});
+        MultilayerPerceptron p = new MultilayerPerceptron(4, 4, 3, new int[]{4, 4, 5, 3});
 //        GraphicsWindow graphicsWindow = new GraphicsWindow("Multilayer Perceptron Output", 800, 1200, p);
         p.initializePerceptron();
         runIrisDataset(p);

@@ -182,8 +182,16 @@ public class MultilayerPerceptron {
         return weights;
     }
 
+    public void putWeights(double[][][] weights) {
+        this.weights = weights;
+    }
+
     public double[][][] getWeightDeltas() {
         return weightDeltas;
+    }
+
+    public void putWeightDeltas(double[][][] weights) {
+        this.weights = weights;
     }
 
     public void changeLearningRate(double rate) {
@@ -324,7 +332,7 @@ public class MultilayerPerceptron {
      * @param target
      */
     public double[][][] backprop(double[] target) {
-        double momentum = 0.1; //TODO: Move the momentum variable out of this function
+        double momentum = 0.25; //TODO: Move the momentum variable out of this function
 
         //For each output node, find the delta
         for (int n = 0; n < output; n++) {
@@ -486,6 +494,13 @@ public class MultilayerPerceptron {
         return ((Math.sqrt(summation)) / output);
     }
 
+    /**
+     * Prints the current fitness.
+     *
+     * @param testingInputs
+     * @param testingOutputs
+     * @return
+     */
     public void fitness(double[][] testingInputs, double[][] testingOutputs) {
         double amountCorrect = 0;
         double totalError = 0;
@@ -520,6 +535,46 @@ public class MultilayerPerceptron {
 
         //Prints fitness of model out of 1, 1 being perfect and 0 being completely incorrect
         System.out.println("Current fitness: " + amountCorrect + "/" + testingInputs.length + " = " + (amountCorrect/testingInputs.length));
+    }
+
+    /**
+     * Returns the current fitness minus the current error.
+     *
+     * @param testingInputs
+     * @param testingOutputs
+     * @return
+     */
+    public double fitnessVal(double[][] testingInputs, double[][] testingOutputs) {
+        double amountCorrect = 0;
+        double totalError = 0;
+        for(int i = 0; i < testingInputs.length; i++) {
+            this.presentPattern(testingInputs[i]);
+
+            totalError += error(testingOutputs[i]);
+
+            //TODO: Make the length non-hardcoded
+//            double[] roundedNetout = {Math.round(this.netout[0]), Math.round(this.netout[1]), Math.round(this.netout[2])};
+
+            //Finds the node that the multilayer perceptron is most confident is the actual output. If two are
+            //equivalent, it uses the first one. Could lead to potential bugs, so this is a potential point of failure.
+            //TODO: Probably separate this into it's own function at some point soon...
+            double[] roundedNetout = new double[netout.length];
+            int largest_netout_index = 0;
+            for(int j = 0; j < netout.length; j++) {
+                if(this.netout[j] > this.netout[largest_netout_index]) {
+                    largest_netout_index =  j;
+                }
+                roundedNetout[j] = 0.0;
+            }
+            roundedNetout[largest_netout_index] = 1.0;
+
+            //Check if the rounded netout is equal to the testing output. If so, it's correct! Increment.
+            if(Arrays.equals(roundedNetout, testingOutputs[i])) {
+                amountCorrect++;
+            }
+        }
+
+        return /*(amountCorrect/testingInputs.length) -*/ (totalError / testingInputs.length);
     }
 
     public int[][] getErrorMatrix(double[][] testingInputs, double[][] testingOutputs) {
