@@ -178,6 +178,17 @@ public class MultilayerPerceptron {
     }
 
     /**
+     * Derivation of the activation function
+     *
+     * @param input weighted sum
+     * @return derivation of the activation function
+     */
+    public double thresholdDeriv(double input) {
+        double threshold = threshold(input);
+        return threshold * (1-threshold);
+    }
+
+    /**
      * Presents one pattern to the perceptron and calculates the output
      *
      * @param pattern
@@ -261,7 +272,7 @@ public class MultilayerPerceptron {
     public void backprop(double[] target) {
         //TODO: This function is scary. Make it less scary pls
         //Also it is making the perceptron WORSE not better... uhhh
-        double delO = 0.0;
+        double delta = 0.0; //?????
         double momentum = 0.2; //TODO: Move the momentum variable out of this function
 
         //For each output node, modify the weights
@@ -279,27 +290,27 @@ public class MultilayerPerceptron {
                         momentum);
 
                 //BACK propagation...
-                delO += (weights[hiddenLayers][n][m] * (netout[n] * (1 - netout[n]) * (target[n] - netout[n])));
+                delta += (weights[hiddenLayers][n][m] * (netout[n] * (1 - netout[n]) * (target[n] - netout[n])));
             }
         }
 
             //Update weights for middle hidden nodes
         for(int a = hiddenLayers-1; a > 0; a--) { //Work backwards
-            double delO_last = delO; //Lets us preserve our old delO while changing the new one
-            delO = 0.0;
+            double delta_last = delta; //Lets us preserve our old delO while changing the new one
+            delta = 0.0;
             for (int n = 0; n < hiddenNodes[a]; n++) {
                 //Correct the output weights
                 for (int m = 0; m < weights[a][n].length; m++) {
                     //Referencing pg. 11 from Leonardo Noriega
                     weights[a][n][m] = weights[a][n][m] + (learningRate * (nethidden[a][n] * (1 - nethidden[a][n]) *
-                            delO_last) * nethidden[a-1][m]) + (weightDeltas[a][n][m] * momentum); //This is kind of scuffed...
+                            delta_last) * nethidden[a-1][m]) + (weightDeltas[a][n][m] * momentum); //This is kind of scuffed...
 
                     //Momentum...
                     weightDeltas[a][n][m] = (learningRate * (nethidden[a][n] * (1 - nethidden[a][n]) *
-                            delO_last) * nethidden[a-1][m]) + (weightDeltas[a][n][m] * momentum);
+                            delta_last) * nethidden[a-1][m]) + (weightDeltas[a][n][m] * momentum);
 
                     //BACK propagation...
-                    delO += (weights[a][n][m] * (nethidden[a][n] * (1 - nethidden[a][n]) * delO_last));
+                    delta += (weights[a][n][m] * (nethidden[a][n] * (1 - nethidden[a][n]) * delta_last));
                     //wtf do we do with (target[n] - netout[n])???????? i guess just replace with delO_last????
                 }
             }
@@ -311,11 +322,11 @@ public class MultilayerPerceptron {
             for (int m = 0; m < weights[0][n].length; m++) {
                 //Referencing pg. 11 from Leonardo Noriega
                 weights[0][n][m] = weights[0][n][m] + (learningRate * (nethidden[0][n] * (1 - nethidden[0][n]) *
-                        delO) * netin[m]) + (weightDeltas[0][n][m] * momentum); //This is kind of scuffed...
+                        delta) * netin[m]) + (weightDeltas[0][n][m] * momentum); //This is kind of scuffed...
 
                 //Momentum...
                 weightDeltas[0][n][m] = (learningRate * (nethidden[0][n] * (1 - nethidden[0][n]) *
-                        delO) * netin[m]) + (weightDeltas[0][n][m] * momentum);
+                        delta) * netin[m]) + (weightDeltas[0][n][m] * momentum);
             }
         }
     }
@@ -338,8 +349,22 @@ public class MultilayerPerceptron {
             totalError += error(testingOutputs[i]);
 
             //TODO: Make the length non-hardcoded
-            double[] roundedNetout = {Math.round(this.netout[0]), Math.round(this.netout[1]), Math.round(this.netout[2])};
+//            double[] roundedNetout = {Math.round(this.netout[0]), Math.round(this.netout[1]), Math.round(this.netout[2])};
 
+            //Finds the node that the multilayer perceptron is most confident is the actual output. If two are
+            //equivalent, it uses the first one. Could lead to potential bugs, so this is a potential point of failure.
+            //TODO: Probably separate this into it's own function at some point soon...
+            double[] roundedNetout = new double[netout.length];
+            int largest_netout_index = 0;
+            for(int j = 0; j < netout.length; j++) {
+                if(this.netout[j] > this.netout[largest_netout_index]) {
+                    largest_netout_index =  j;
+                }
+                roundedNetout[j] = 0.0;
+            }
+            roundedNetout[largest_netout_index] = 1.0;
+
+            //Check if the rounded netout is equal to the testing output. If so, it's correct! Increment.
             if(Arrays.equals(roundedNetout, testingOutputs[i])) {
                 amountCorrect++;
             }
@@ -360,7 +385,7 @@ public class MultilayerPerceptron {
             //Detect what class the mlp thought the input belonged to
             int highestValue = 0;
             for(int j = 1; j < netout.length; j++) {
-                if(Math.max(netout[highestValue], netout[j]) == netout[j]) {
+                if(Math.max(netout[highestValue], netout[j]) == netout[j]) {//TODO: just use a > idk
                     highestValue = j;
                 }
             }

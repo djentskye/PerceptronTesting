@@ -5,12 +5,16 @@ public class MainMultiLayer {
     public static double[][] irisInputs = new double[150][4];
     public static double[][] irisOutputs = new double[150][3];
 
+    public static double[][] irisAmyInputs = new double[3][4];
+    public static double[][] irisAmyOutputs = new double[3][3];
+
     public static void runEpoch(MultilayerPerceptron p, double learningRate) {
         p.changeLearningRate(learningRate);
 
         Random rand = new Random();
 
-        for(int i = 0; i < irisInputs.length; i++) {
+        //TODO: Gradient vector goes here! ^^
+        for(int i = 0; i < 10; i++) {
             int j = rand.nextInt(150);
             p.presentPattern(irisInputs[j]);
             p.backprop(irisOutputs[j]);
@@ -20,10 +24,12 @@ public class MainMultiLayer {
     public static void runIrisDataset(MultilayerPerceptron p) {
         p.showState();
         p.fitness(irisInputs, irisOutputs);
+        p.printErrorMatrix(irisInputs, irisOutputs);
 
         p.showState();
         runEpoch(p, 0.3);
         p.fitness(irisInputs, irisOutputs);
+        p.printErrorMatrix(irisInputs, irisOutputs);
 
         for(int i = 0; i < 500; i++) {
             runEpoch(p, 0.3);
@@ -33,7 +39,7 @@ public class MainMultiLayer {
         p.fitness(irisInputs, irisOutputs);
         p.printErrorMatrix(irisInputs, irisOutputs);
 
-        FileIO.saveMultilayerPerceptron(p, "testing_perceptron_updated.txt");
+//        FileIO.saveMultilayerPerceptron(p, "testing_perceptron_updated.txt");
     }
 
     public static void main(String[] args) {
@@ -43,9 +49,15 @@ public class MainMultiLayer {
         p.initializePerceptron();
         runIrisDataset(p);
 
+        //Load a graphical window to represent the perceptron
 //        GraphicsWindow graphicsWindow = new GraphicsWindow("Multilayer Perceptron Output", 800, 1200, p);
 
 //        MultilayerPerceptron p = FileIO.loadMultilayerPerceptron("testing_perceptron_updated.txt");
 //        runIrisDataset(p);
+
+//        MultilayerPerceptron p = FileIO.loadMultilayerPerceptron("testing_perceptron_updated01.txt");
+//        runIrisDataset(p);
+
+        System.out.println("hi");
     }
 }
